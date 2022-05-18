@@ -9,22 +9,29 @@
 
 # Argument `run_id` must be set as the first argument when running the script
 
-
-# Key params - REQUIRES INPUT
+# Key params
 apply=true
 
-# Get first argument.
-# and clone the git repository
-if [ ! -z $1 ]; then
-  run_id=$1
-  fi
+# set input arguments
+while getopts r:c:t:g arg
+do
+    case "${arg}" in
+        r) run_id=${OPTARG};;
+        c) comment=${OPTARG};;
+        t) TFE_ADDR=${OPTARG};;
+        g) git_url=${OPTARG};;
+    esac
+done
+
+# Set the run_id paramater from input argument
+if [ ! -z $run_id ]; then
+  run_id=$run_id
   echo "Applying the plan found in Run ${run_id}"
 else
   echo "no run_id has been set."
   echo "Exiting!"
   exit
 fi
-
 
 ####
 if [ ! -z "$TFE_TOKEN" ]; then
@@ -53,7 +60,6 @@ fi
 
 # Evaluate $TFE_ADDR environment variable if it exists
 # Otherwise, use "app.terraform.io"
-# You should edit these before running the script.
 if [ ! -z "$TFE_ADDR" ]; then
   address=$TFE_ADDR
   echo "TFE_ADDR environment variable was set to ${TFE_ADDR}."
@@ -66,20 +72,17 @@ else
 fi
 
 # workspace name should not have spaces and should be set as second
-# argument from CLI
-
-workspace="workspace-from-api" # change to accept input
 
 # You can change sleep duration if desired
 sleep_duration=5
 
-# Get first argument.
-# If not "", Set to git clone URL
-# and clone the git repository
-# If "", then load code from config directory
-if [ ! -z $1 ]; then
-  git_url=$1
+# If -g argument used, then set to git clone URL.
+# If -g not set, then load code from config directory
+
+if [ ! -z $git_url ]; then
+  git_url=$git_url
   config_dir=$(echo $git_url | cut -d "/" -f 5 | cut -d "." -f 1)
+  echo "Cloning config from $git_url"
   if [ -d "${config_dir}" ]; then
     echo "removing existing directory ${config_dir}"
     rm -fr ${config_dir}
@@ -92,24 +95,24 @@ else
   config_dir="config"
 fi
 
+
 # Set workspace if provided as the second argument
-if [ ! -z "$2" ]; then
-  workspace=$2
-  echo "Using workspace provided as argument: " $workspace
-else
-  echo "Using workspace set in the script: " $workspace
-fi
+#if [ ! -z $workspace ]; then
+#  workspace=$workspace
+#  echo "Using workspace provided as argument: " $workspace
+#else
+#  echo "Using workspace set in the script: " $workspace
+#fi
 
 # Make sure $workspace does not have spaces
-if [[ "${workspace}" != "${workspace% *}" ]] ; then
-    echo "The workspace name cannot contain spaces."
-    echo "Please pick a name without spaces and run again."
-    exit
-fi
-
+#if [[ "${workspace}" != "${workspace% *}" ]] ; then
+#    echo "The workspace name cannot contain spaces."
+#    echo "Please pick a name without spaces and run again."
+#    exit
+#fi
 
 # Write out workspace.template.json
-cat > workspace.template2.json <<EOF
+cat > workspace.template.json <<EOF
 {
   "data":
   {
@@ -189,33 +192,20 @@ EOF
 
 # Better way to deal with variables. Currently cannot be updated via this Script.
 
-
-############
-############
-
 #############
 #############
 
-# Get run_status
-# get `confirmable status`
-# get apply status
+# planned means plan finished and no Sentinel policy sets
+# exist or are applicable to the workspace
+if [[ "$apply" == "true" ]]; then
+  echo ""
+  echo "`apply` parameter was set to `true` so Terraform configuration will be applied as described in the plan."
+  # Do the apply
+  apply_result=$(curl -s --header "Authorization: Bearer $TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --data @apply.json https://${address}/api/v2/runs/${run_id}/actions/apply)
+  applied="true"
 
-#############
-#############
-
-  # Run is planning - get the plan
-
-  # planned means plan finished and no Sentinel policy sets
-  # exist or are applicable to the workspace
-  if [[ "$apply" == "true" ]]; then
-    echo ""
-    echo "`apply` parameter was set to `true` so Terraform configuration will be applied as described in the plan."
-    # Do the apply
-    apply_result=$(curl -s --header "Authorization: Bearer $TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --data @apply.json https://${address}/api/v2/runs/${run_id}/actions/apply)
-    applied="true"
-
-  # errored means that plan had an error or that a hard-mandatory
-  # policy failed
+# errored means that plan had an error or that a hard-mandatory
+# policy failed
 #  elif [[ "$run_status" == "errored" ]]; then
 #    echo ""
 #    echo "Plan errored or hard-mandatory policy failed"
@@ -238,15 +228,14 @@ EOF
 #    echo ""
 #    echo "The run was discarded."
 #    continue=0
-  else
-    # Sleep and then check status again in next loop
-    echo "We will sleep and try again soon."
-  fi
+else
+  # Sleep and then check status again in next loop
+  echo "We will sleep and try again soon."
+fi
 
 
 # Get the apply log and state file if an apply was done
 if [[ "$applied" == "true" ]]; then
-
   echo ""
   echo "An apply was done."
   echo "Will download apply log and state file."

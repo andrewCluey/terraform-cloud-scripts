@@ -6,7 +6,7 @@ resource "azurerm_resource_group" "example" {
 variable "rg_name" {
   type        = string
   description = "The name for the new Resource Group"
-  default = "rrg-new-app-3"
+  default = "rg-new_ws"
 }
 
 variable "region" {
