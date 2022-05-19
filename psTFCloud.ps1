@@ -1,5 +1,4 @@
 param (
-
     [string]$gitUrl,
     [string]$organization,
     [string]$workspace,
@@ -11,7 +10,7 @@ param (
 if (Test-Path env:token) {
     write-host "TOKEN environment variable was found."
     }else {
-        write-host "TFE_TOKEN environment variable not set."
+        write-host "TOKEN environment variable not set."
         exit
     }
 
@@ -66,17 +65,21 @@ if ($workspace) {
 # 
 
 if ($terraformConfigDirectory) {
-    $env:config_dir = $terraformConfigDirectory
-    write-host "The config directory name has been set to $env:config_dir"
+    $config_dir_name = $terraformConfigDirectory
+    $config_dir = "./$config_dir_name"
+    write-host "The config directory name has been set to $config_dir_name"
 }else {
     write-host "no config directory has been set. Using 'config'"
-    $env:config_dir = "config"
+    $config_dir_name = "config"
+    $config_dir = "./config"
 }
+$config_tar_file_name = "$config_dir_name.tar.gz"
 
 
 # build compressed tar file from configuration directory
 write-host "Tarring configuration directory."
-tar -zcvf "./$env:config_dir.tar.gz" -C "$env:config_dir" --exclude './.terraform/' --exclude './.terraform.lock.hcl' --exclude './cloud.tf' .
+tar -cvzf $config_tar_file_name -C $config_dir --exclude .git .
+#tar -zcvf "./$env:config_dir.tar.gz" -C "$env:config_dir" --exclude './.terraform/' --exclude './.terraform.lock.hcl' --exclude './cloud.tf' .
 
 # Write out workspace.template.json
 $workspaceTemplate = @"
@@ -205,7 +208,7 @@ if (!$check_workspace_result) {
 # 
 # 
 ####
-$configVersionJson = "./configVersion.json"
+$configVersionJson = "./configversion.json"
 write-host ""
 write-host "Creating configuration version."
 $configuration_version_result = Invoke-RestMethod -Headers $headers -Method POST -inFile $configVersionJson -Uri "https://$env:address/api/v2/workspaces/$workspaceId/configuration-versions"
@@ -220,14 +223,11 @@ write-host "Upload URL: $uploadurl"
 # Upload configuration
 $uploadConfigHeaders = @{
   'Content-Type' = 'application/octet-stream'
-  'Authorization' = "Bearer $env:token"
 }
 write-host ""
 write-host "Uploading configuration version using $env:config_dir.tar.gz"
-$uploadConfig = curl -s --header "Content-Type: application/octet-stream" --request PUT --data-binary @${config_dir}.tar.gz $uploadurl
-$uploadConfig
+curl -s --header "Content-Type: application/octet-stream" --request PUT --data-binary @$config_tar_file_name "$uploadurl"
 #Invoke-RestMethod -Headers $uploadConfigHeaders -Method PUT -inFile $env:config_dir.tar.gz -Uri $uploadurl
-
 
 
 # Check if a variables.csv file is in the configuration directory
@@ -268,7 +268,10 @@ write-host "Number of Sentinel policy sets: $sentinelPolicySetCount"
 $runResult = Invoke-RestMethod -Method POST -Headers $headers -inFile './run.json' -uri "https://$env:address/api/v2/runs"
 # Parse run_result
 Start-Sleep -Seconds 15
+
 $runId = $runResult.data.id
 write-host ""
-write-host "Run ID: $run_id"
+write-host "Run ID: $runId" #### $runid is crucial for subsequent apply following approval. This needs to be saved back to SNOW.
+$env:runId = $runId
+write-host "view the run in Terraform Cloud: https://app.terraform.io/app/$organization/workspaces/$workspace/runs/$runId"
 

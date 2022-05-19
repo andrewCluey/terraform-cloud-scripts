@@ -1,0 +1,10 @@
+{
+    "data":
+    {
+      "attributes": {
+        "name":"newPS2",
+        "terraform-version": "1.0.5"
+      },
+      "type":"workspaces"
+    }
+  }

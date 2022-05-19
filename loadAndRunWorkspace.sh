@@ -20,7 +20,7 @@ applied="false" # Should be set at launch as input param.
 
 # workspace name should not have spaces and should be set as second
 # argument from CLI
-workspace="RFCCSXDEMO"
+workspace="rfc-mid-demo"
 
 
 if [ ! -z "$TFE_TOKEN" ]; then
