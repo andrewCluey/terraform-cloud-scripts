@@ -187,11 +187,6 @@ cat > apply.json <<EOF
 EOF
 
 
-############
-############
-
-# Better way to deal with variables. Currently cannot be updated via this Script.
-
 #############
 #############
 
