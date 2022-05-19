@@ -20,8 +20,7 @@ applied="false" # Should be set at launch as input param.
 
 # workspace name should not have spaces and should be set as second
 # argument from CLI
-workspace="new_workspace"
-
+workspace="RFCCSXDEMO"
 
 
 if [ ! -z "$TFE_TOKEN" ]; then
@@ -308,7 +307,7 @@ echo ""
 echo "Run ID: " $run_id #### $run_id is crucial for subsequent apply following approval. This needs to be saved back to SNOW.
 export runId=$run_id
 echo "the run_id is " ${run_id}
-echo "view the run in Terraform Cloud: https://app.terraform.io/app/asc-dev/workspaces/"${workspace}/runs/${run_id}
+echo "view the run in Terraform Cloud: https://app.terraform.io/app/${organization}/workspaces/"${workspace}/runs/${run_id}
 
 #############
 #############
@@ -333,7 +332,7 @@ while [ $continue -ne 0 ]; do
   echo "run_id:" ${run_id}
 
 
-
+   
   # Run is planning - get the plan
 
   # planned means plan finished and no Sentinel policy sets
@@ -341,10 +340,10 @@ while [ $continue -ne 0 ]; do
   if [[ "$run_status" == "planned" ]] && [[ "$is_confirmable" == "true" ]] && [[ "$apply" == "true" ]]; then
     continue=0
     echo ""
-    echo "`apply` parameter was set to `true` so Terraform configuration will be applied as described in the plan."
+ #   echo "`apply` parameter was set to `true` so Terraform configuration will be applied as described in the plan."
     # Do the apply
-    apply_result=$(curl -s --header "Authorization: Bearer $TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --data @apply.json https://${address}/api/v2/runs/${run_id}/actions/apply)
-    applied="true"
+ #   apply_result=$(curl -s --header "Authorization: Bearer $TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --data @apply.json https://${address}/api/v2/runs/${run_id}/actions/apply)
+ #   applied="true"
 
 
   elif [[ "$run_status" == "planned" ]] && [[ "$is_confirmable" == "true" ]] && [[ "$override" == "no" ]]; then
@@ -359,6 +358,12 @@ while [ $continue -ne 0 ]; do
     continue=0
     echo ""
     echo "There are " $sentinel_policy_set_count "policy sets, but none of them are applicable to this workspace."
+    echo "Check the run in Terraform Enterprise UI and apply there if desired."
+    save_plan="true"
+  elif [[ "$run_status" == "policy_checked" ]] && [[ "$is_confirmable" == "true" ]] && [[ "$override" == "no" ]]; then
+    continue=0
+    echo ""
+    echo "There are " $sentinel_policy_set_count "policy sets."
     echo "Check the run in Terraform Enterprise UI and apply there if desired."
     save_plan="true"
 #  elif [[ "$run_status" == "planned" ]] && [[ "$is_confirmable" == "true" ]] && [[ "$override" == "yes" ]]; then
@@ -383,7 +388,7 @@ while [ $continue -ne 0 ]; do
 #    continue=0
 #  elif [[ "$run_status" == "policy_checked" ]]; then
 #    echo ""
-#    # Do the apply
+    # Do the apply
 #    echo "Policies passed. Doing Apply"
 #    apply_result=$(curl -s --header "Authorization: Bearer $TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --data @apply.json https://${address}/api/v2/runs/${run_id}/actions/apply)
 #    applied="true"
@@ -413,11 +418,11 @@ while [ $continue -ne 0 ]; do
   # policy_override means at least 1 Sentinel policy failed
   # but since $override is "no", we will not override
   # and will not apply
-  elif [[ "$run_status" == "policy_override" ]] && [[ "$override" == "no" ]]; then
-    echo ""
-    echo "Some policies failed, but will not override. Check run in Terraform Enterprise UI."
-    save_plan="true"
-    continue=0
+#  elif [[ "$run_status" == "policy_override" ]] && [[ "$override" == "no" ]]; then
+#    echo ""
+#    echo "Some policies failed, but will not override. Check run in Terraform Enterprise UI."
+#    save_plan="true"
+#    continue=0
   # errored means that plan had an error or that a hard-mandatory
   # policy failed
   elif [[ "$run_status" == "errored" ]]; then
