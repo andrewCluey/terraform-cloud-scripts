@@ -2,8 +2,7 @@ param (
   [Parameter(Mandatory=$true)][string]$workspace,  
   [string]$organization,
   [string]$gitUrl,
-  [string]$TFE_TOKEN,
-  [string]$terraformConfigDirectory
+  [string]$TFE_TOKEN
 )
 
 <#
@@ -67,35 +66,18 @@ if ($workspace) {
 }
 
 
-
 # Clone Git Repo
 # If GitRepo not set, then load code from config directory
-#if [ ! -z $1 ]; then
-#  git_url=$1
-#  config_dir=$(echo $git_url | cut -d "/" -f 5 | cut -d "." -f 1)
-#  if [ -d "${config_dir}" ]; then
-#    echo "removing existing directory ${config_dir}"
-#    rm -fr ${config_dir}
-#  fi
-#  echo "Cloning from git URL ${git_url} into directory ${config_dir}"
-#  git clone -q ${git_url}
-#else
-#  echo "Will take code from config directory."
-#  git_url=""
-#  config_dir="config"
-#fi
-
-# 
-
-if ($terraformConfigDirectory) {
-    $config_dir_name = $terraformConfigDirectory
-    $config_dir = "./$config_dir_name"
-    write-host "The config directory name has been set to $config_dir_name"
+if ($gitUrl) {
+  $trimmedName = $gitURL.Split('/')[-1] 
+  $config_dir_name = $trimmedName -replace ".{4}$"
+  $config_dir = "./$config_dir_name"
 }else {
-    write-host "no config directory has been set. Using 'config'"
-    $config_dir_name = "config"
-    $config_dir = "./config"
+  write-host "no config directory has been set. Using 'config'"
+  $config_dir_name = "config"
+  $config_dir = "./config"
 }
+
 $config_tar_file_name = "$config_dir_name.tar.gz"
 
 
