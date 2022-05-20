@@ -2,23 +2,19 @@ param (
     [Parameter(Mandatory=$true)][string]$workspace,
     [Parameter(Mandatory=$true)][string]$runId,
     [string]$organization,
-    [string]$gitUrl,
-    [string]$terraformConfigDirectory,
-    [string]$comment
+    [string]$comment #Set a default value
 )
 
 <#
  .SYNOPSIS
- Connects to Terraform Cloud and applies the run specified in the `runId` parameter.
+ Connects to Terraform cloud and discards the run specified in `runId`.
  
 
  .DESCRIPTION
- Will create a new Workspace if the specified Workspace does not already exist.
- Will download Terraform config from a Git URL if specified.
- Will default to using the local `config` directory if no Git URL specified.
+ Discards the Run specified in the input parameters.
 
  .PARAMETER workspace
- Required: Specifies the Workspace to use or create.
+ Required: Specifies the Worksp[ace to use or create.
 
  .PARAMETER runId
  Required: The Run ID that you wish to apply. 
@@ -28,8 +24,6 @@ param (
  If no env variable set, then this paramater is required.
  Specifies which Terraform Cloud Organization to create the new Workspace in.
 
- .PARAMETER giturl
- Not yet in use
 #>
 
 
@@ -66,31 +60,27 @@ if ($workspace) {
     $env:workspace = $workspace
     write-host "The workspace to use is configured as $env:workspace"
 }else {
-    $env:workspace = $workspace
+    write-host "no workspace has been set. PLease set a Workspace name to use."
+    exit
 }
 
-
-# Write out apply.json
-# Write out apply.json
-$applyJson = @"
-{"comment": "apply via API"}
+# Write out discard.json
+$discardJson = @"
+{"comment": "placeholder"}
 "@
 
-set-content -Value $applyJson -Path ./apply.json
+set-content -Value $discardJson -Path ./discard.template.json
+
+(get-content ./discard.template.json) -Replace 'placeholder', $comment | set-content ./discard.json
 
 #############
 Write-Host ""
-$apply_result = curl -s --header "Authorization: Bearer $env:TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --data @apply.json https://$address/api/v2/runs/$runId/actions/apply
+$discardResult = curl -s --header "Authorization: Bearer $env:TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --request POST --data @discard.json https://$address/api/v2/runs/$runId/actions/discard
 
-# Get run details including apply information
-$check_result = curl -s --header "Authorization: Bearer $env:TFE_TOKEN" --header "Content-Type: application/vnd.api+json" https://$address/api/v2/runs/$runId?include=apply
+$discardResult
+write-host "Run $runId discarded"
 
-# Get apply ID
-$apply_id = $check_result.included[0].id
-write-host "Apply ID: $apply_id"
+# Remove generate content
+rm discard.json
+rm discard.template.json
 
-# Check apply status periodically in loop
-
-
-# Remove any generated files and user content (git download directories)
-rm apply.json

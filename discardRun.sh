@@ -89,7 +89,7 @@ fi
 # You can change sleep duration if desired
 sleep_duration=5
 
-# Write out apply.json
+# Write out discard.json
 cat > discard.template.json <<EOF
 {"comment": "placeholder"}
 EOF
