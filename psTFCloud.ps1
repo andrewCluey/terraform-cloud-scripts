@@ -1,10 +1,33 @@
 param (
-    [string]$gitUrl,
-    [string]$organization,
-    [string]$workspace,
-    [string]$terraformConfigDirectory
-
+  [Parameter(Mandatory=$true)][string]$workspace,  
+  [string]$organization,
+  [string]$gitUrl,
+  [string]$terraformConfigDirectory
 )
+
+<#
+ .SYNOPSIS
+ Connects to Terraform Cloud or Enterprise Instance and creates & Runs a new configuration.
+ 
+
+ .DESCRIPTION
+ Will create a new Workspace if the specified Workspace does not already exist.
+ Will download Terraform config from a Git URL if specified.
+ Will default to using the local `config` directory if no Git URL specified.
+
+ .PARAMETER workspace
+ Required: Specifies the Worksp[ace to use or create.
+
+ .PARAMETER organization
+ Optional: Will first check local environment variables for $env:organization.
+ If no env variable set, then this paramater is required.
+ Specifies which Terraform Cloud Organization to create the new Workspace in.
+
+ .PARAMETER giturl
+ Not yet in use
+#>
+
+
 
 # Check that the `TFE_TOKEN` environment variable is set.
 if (Test-Path env:token) {
