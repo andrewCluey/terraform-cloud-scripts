@@ -71,7 +71,6 @@ if ($workspace) {
 if ($gitUrl) {
   $trimmedName = $gitURL.Split('/')[-1] 
   $config_dir_name = $trimmedName -replace ".{4}$"
-  $env:
   $config_dir = "./$config_dir_name"
 }else {
   write-host "no config directory has been set. Using 'config'"
