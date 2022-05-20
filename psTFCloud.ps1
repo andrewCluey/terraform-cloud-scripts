@@ -2,6 +2,7 @@ param (
   [Parameter(Mandatory=$true)][string]$workspace,  
   [string]$organization,
   [string]$gitUrl,
+  [string]$TFE_TOKEN,
   [string]$terraformConfigDirectory
 )
 
@@ -33,8 +34,7 @@ param (
 if (Test-Path env:token) {
     write-host "TOKEN environment variable was found."
     }else {
-        write-host "TOKEN environment variable not set."
-        exit
+        $env:token = $TFE_TOKEN
     }
 
 # Evaluate $TFE_ORG environment variable
