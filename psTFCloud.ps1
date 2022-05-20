@@ -71,11 +71,13 @@ if ($workspace) {
 if ($gitUrl) {
   $trimmedName = $gitURL.Split('/')[-1] 
   $config_dir_name = $trimmedName -replace ".{4}$"
+  $env:
   $config_dir = "./$config_dir_name"
 }else {
   write-host "no config directory has been set. Using 'config'"
   $config_dir_name = "config"
   $config_dir = "./config"
+
 }
 
 $config_tar_file_name = "$config_dir_name.tar.gz"
@@ -84,7 +86,6 @@ $config_tar_file_name = "$config_dir_name.tar.gz"
 # build compressed tar file from configuration directory
 write-host "Tarring configuration directory."
 tar -cvzf $config_tar_file_name -C $config_dir --exclude .git .
-#tar -zcvf "./$env:config_dir.tar.gz" -C "$env:config_dir" --exclude './.terraform/' --exclude './.terraform.lock.hcl' --exclude './cloud.tf' .
 
 # Write out workspace.template.json
 $workspaceTemplate = @"
@@ -230,17 +231,16 @@ $uploadConfigHeaders = @{
   'Content-Type' = 'application/octet-stream'
 }
 write-host ""
-write-host "Uploading configuration version using $env:config_dir.tar.gz"
+write-host "Uploading configuration version using $config_tar_file_name"
 curl -s --header "Content-Type: application/octet-stream" --request PUT --data-binary @$config_tar_file_name "$uploadurl"
-#Invoke-RestMethod -Headers $uploadConfigHeaders -Method PUT -inFile $env:config_dir.tar.gz -Uri $uploadurl
 
 
 # Check if a variables.csv file is in the configuration directory
 # If so, use it. Otherwise, use the one in the current directory.
-if (test-path "$env:config_dir/variables.csv") {
+if (test-path "$config_dir/variables.csv") {
   write-host ""
-  write-host "Variables file found in $env:config_dir"
-  $variablesFile = "$env:config_dir/variables.csv"
+  write-host "Variables file found in $config_dir"
+  $variablesFile = "$config_dir/variables.csv"
   # Add variables to workspace
   write-host ""
   $vars = import-csv $variablesFile | ForEach {
