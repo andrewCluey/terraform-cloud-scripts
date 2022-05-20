@@ -72,26 +72,24 @@ if ($workspace) {
 
 
 # Write out apply.json
-# Write out apply.json
-$applyJson = @"
-{"comment": "apply via API"}
+$applyJsonTemplate = @"
+{"comment": "apply API"}
 "@
 
-set-content -Value $applyJson -Path ./apply.json
-
-#############
+set-content -Value $applyJsonTemplate -Path ./apply.json
+$applyJson = "apply.json"
 Write-Host ""
-$apply_result = curl -s --header "Authorization: Bearer $env:TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --data @apply.json https://$address/api/v2/runs/$runId/actions/apply
+$applyResult = curl -s --header "Authorization: Bearer $env:token" --header "Content-Type: application/vnd.api+json" --request POST --data `@apply.json https://$env:address/api/v2/runs/$runId/actions/apply
 
 # Get run details including apply information
-$check_result = curl -s --header "Authorization: Bearer $env:TFE_TOKEN" --header "Content-Type: application/vnd.api+json" https://$address/api/v2/runs/$runId?include=apply
+Start-Sleep -Seconds 10
+$check_result = curl -s --header "Authorization: Bearer $env:token" --header "Content-Type: application/vnd.api+json" https://$env:address/api/v2/runs/$runId?include=apply
 
 # Get apply ID
-$apply_id = $check_result.included[0].id
+$apply_id = $check_result | jq -r .included[0].id
 write-host "Apply ID: $apply_id"
 
 # Check apply status periodically in loop
-
 
 # Remove any generated files and user content (git download directories)
 rm apply.json

@@ -75,7 +75,7 @@ set-content -Value $discardJson -Path ./discard.template.json
 
 #############
 Write-Host ""
-$discardResult = curl -s --header "Authorization: Bearer $env:TFE_TOKEN" --header "Content-Type: application/vnd.api+json" --request POST --data @discard.json https://$address/api/v2/runs/$runId/actions/discard
+$discardResult = curl -s --header "Authorization: Bearer $env:token" --header "Content-Type: application/vnd.api+json" --request POST --data `@discard.json https://$env:address/api/v2/runs/$runId/actions/discard
 
 $discardResult
 write-host "Run $runId discarded"

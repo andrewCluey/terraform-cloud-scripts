@@ -290,11 +290,20 @@ write-host "Number of Sentinel policy sets: $sentinelPolicySetCount"
 ((get-content ./run.template.json) -Replace 'workspace_id', $workspaceId | set-content ./run.json)
 $runResult = Invoke-RestMethod -Method POST -Headers $headers -inFile './run.json' -uri "https://$env:address/api/v2/runs"
 # Parse run_result
-Start-Sleep -Seconds 15
+Start-Sleep -Seconds 10
 
 $runId = $runResult.data.id
 write-host ""
 write-host "Run ID: $runId" #### $runid is crucial for subsequent apply following approval. This needs to be saved back to SNOW.
 $env:runId = $runId
 write-host "view the run in Terraform Cloud: https://app.terraform.io/app/$organization/workspaces/$workspace/runs/$runId"
+write-host ""
+
+
+rm workspace.json
+rm workspace.template.json
+rm run.json
+rm run.template.json
+rm config.tar.gz
+rm configversion.json
 

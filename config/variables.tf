@@ -13,7 +13,7 @@ variable "environment" {
 variable "rg_name" {
   type        = string
   description = "The name for the new Resource Group"
-  default     = "rg-mid-csx"
+  default     = "rg-csx-new"
 }
 
 
