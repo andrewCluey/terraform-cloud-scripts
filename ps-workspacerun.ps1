@@ -35,6 +35,16 @@ param (
  .PARAMETER vcsOAuthToken
  The OauthToken from Terraform cloud to connect to the VCS provider.
 
+ .EXAMPLE 
+ Connects to the `demo` organization in Terraform Cloud and creates a new workspace name `app1`. `
+ Deploying the configuration found in an Azure DevOps Git Rep.
+ Requires:
+    - a Terraform cloud API Token
+    - a Workspace name
+    - A `repoIdentifier` (this is the name of the Git repo where the Terraform deployment code lives).
+    - vcsOauthToken (the OAuth token that is generated in Terraform cloud to connect to the VCS repo.)
+ ./ps-workspacerun.ps1 -TFE_TOKEN $$$$GeneratedTFCloudAPIToken$$$ -organization demo -workspace app1 -repoIdentifier demo/IAC/_git/deploy-azure-app1 -vcsOauthToken OauthVCSToken
+
 #>
 
 
