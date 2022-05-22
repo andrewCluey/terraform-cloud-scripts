@@ -79,7 +79,8 @@ Write-Host ""
 $applyResult = curl -s --header "Authorization: Bearer $env:token" --header "Content-Type: application/vnd.api+json" --request POST --data `@apply.json https://$env:address/api/v2/runs/$runId/actions/apply
 
 # Get run details including apply information
-Start-Sleep -Seconds 10
+Start-Sleep -Seconds 15
+$applyResult
 $check_result = curl -s --header "Authorization: Bearer $env:token" --header "Content-Type: application/vnd.api+json" https://$env:address/api/v2/runs/$runId?include=apply
 
 # Get apply ID
