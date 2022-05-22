@@ -1,0 +1,17 @@
+{
+  "data": {
+    "attributes": {
+      "name": "newPsTest2",
+      "resource-count": 0,
+      "terraform_version": "1.0.5",
+      "working-directory": "",
+      "vcs-repo": {
+        "identifier": "asc-infrastructure/IAC/_git/deploy-azure-resourcegroup",
+        "oauth-token-id": "ot-iMRfh931TxuqPEsj",
+        "branch": ""
+      },
+      "updated-at": "2017-11-29T19:18:09.976Z"
+    },
+    "type": "workspaces"
+  }
+}
