@@ -1,8 +1,9 @@
 param (
   [Parameter(Mandatory=$true)][string]$workspace,  
   [string]$organization,
-  [string]$gitUrl,
-  [string]$TFE_TOKEN
+  [string]$TFE_TOKEN,
+  [string]$repoIdentifier,
+  [string]$vcsOAuthToken
 )
 
 <#
@@ -23,8 +24,11 @@ param (
  If no env variable set, then this paramater is required.
  Specifies which Terraform Cloud Organization to create the new Workspace in.
 
- .PARAMETER giturl
+ .PARAMETER repoIdentifier
  Not yet in use
+
+ .PARAMETER vcsOAuthToken
+
 #>
 
 
@@ -65,56 +69,42 @@ if ($workspace) {
     exit
 }
 
-
-# Clone Git Repo
-# If GitRepo not set, then load code from config directory
-if ($gitUrl) {
-  $trimmedName = $gitURL.Split('/')[-1] 
-  $config_dir_name = $trimmedName -replace ".{4}$"
-  $config_dir = "./$config_dir_name"
-}else {
-  write-host "no config directory has been set. Using 'config'"
-  $config_dir_name = "config"
-  $config_dir = "./config"
-
-}
-
-$config_tar_file_name = "$config_dir_name.tar.gz"
-
-
-# build compressed tar file from configuration directory
-write-host "Tarring configuration directory."
-tar -cvzf $config_tar_file_name -C $config_dir --exclude .git .
-
 # Write out workspace.template.json
+#$workspaceTemplate = @"
+#{
+#    "data":
+#    {
+#      "attributes": {
+#        "name":"placeholder",
+#        "terraform-version": "1.0.5"
+#      },
+#      "type":"workspaces"
+#    }
+#  }
+#"@
+
 $workspaceTemplate = @"
 {
-    "data":
-    {
-      "attributes": {
-        "name":"placeholder",
-        "terraform-version": "1.0.5"
+  "data": {
+    "attributes": {
+      "name": "placeholder",
+      "resource-count": 0,
+      "terraform_version": "1.0.5",
+      "working-directory": "",
+      "vcs-repo": {
+        "identifier": "repoId",
+        "oauth-token-id": "oauthtoken",
+        "branch": ""
       },
-      "type":"workspaces"
-    }
+      "updated-at": "2017-11-29T19:18:09.976Z"
+    },
+    "type": "workspaces"
   }
+}
 "@
 
 set-content -Value $workspaceTemplate -Path ./workspace.template.json
 
-# Write out configversion.json
-$configversion = @"
-{
-  "data": {
-    "type": "configuration-versions",
-    "attributes": {
-      "auto-queue-runs": false
-    }
-  }
-}
-"@
-
-set-content -Value $configversion -Path ./configversion.json
 
 # Write out variable.template.json
 $variabletemplate = @"
@@ -165,12 +155,16 @@ $runtemplate = @"
 
 set-content -Value $runtemplate -Path ./run.template.json
 
-# Write out apply.json
-$applyJson = @"
-{"comment": "apply via API"}
-"@
 
-set-content -Value $applyJson -Path ./apply.json
+# Write out apply.json
+#$applyJson = @"
+#{"comment": "apply via API"}
+#"@
+
+#set-content -Value $applyJson -Path ./apply.json
+
+
+
 
 
 #### Check for Workspace and create if not ####
@@ -178,7 +172,7 @@ set-content -Value $applyJson -Path ./apply.json
 # Set name of workspace in workspace.json
 # use $workspaceTemplate file
 ####
-(get-content ./workspace.template.json) -Replace 'placeholder', $env:workspace | set-content ./workspace.json
+(get-content ./workspace.template.json) -Replace 'placeholder', $env:workspace -Replace 'repoId', $repoIdentifier -Replace 'oauthtoken', $vcsOAuthToken  | set-content ./workspace.json
 $workspaceJson = "./workspace.json"
 # Check to see if the workspace already exists
 write-host " "
@@ -190,16 +184,20 @@ $headers = @{
 $uri = "https://$env:address/api/v2/organizations/$env:organization/workspaces/$env:workspace"
 $check_workspace_result = $null
 $check_workspace_result = Invoke-RestMethod -uri $uri -headers $headers
-$jsWorkspace_result = $check_workspace_result | convertTo-Json -Depth 10
-$workspaceId = $jsWorkspace_result | jq -r '.data.id'
+$jsWorkspace_result = $check_workspace_result
+$jsWorkspace_result.data.id
+$workspaceId = $jsWorkspace_result.data.id
+#$workspaceId = $jsWorkspace_result | jq -r '.data.id'
 
 # Create workspace if it does not already exist
 if (!$check_workspace_result) {
     write-host ""
     write-host "Workspace does not exist.... Creating workspace $env:workspace"
     $workspace_result = Invoke-RestMethod -Headers $headers -Method POST -inFile $workspaceJson -Uri "https://$env:address/api/v2/organizations/$env:organization/workspaces"
-    $jsWorkspace_result = $workspace_result | convertTo-Json  -Depth 10
-    $workspaceId = $jsWorkspace_result | jq -r '.data.id'
+    $jsWorkspace_result = $workspace_result
+    $jsWorkspace_result.data.id
+    $workspaceId = $jsWorkspace_result.data.id
+    #$workspaceId = $jsWorkspace_result | jq -r '.data.id'
     write-host ""
     write-host "Workspace ID: $workspaceId"
 }else {
@@ -213,51 +211,51 @@ if (!$check_workspace_result) {
 # 
 # 
 ####
-$configVersionJson = "./configversion.json"
-write-host ""
-write-host "Creating configuration version."
-$configuration_version_result = Invoke-RestMethod -Headers $headers -Method POST -inFile $configVersionJson -Uri "https://$env:address/api/v2/workspaces/$workspaceId/configuration-versions"
+#$configVersionJson = "./configversion.json"
+#write-host ""
+#write-host "Creating configuration version."
+#$configuration_version_result = Invoke-RestMethod -Headers $headers -Method POST -inFile $configVersionJson -Uri "https://$env:address/api/v2/workspaces/$workspaceId/configuration-versions"
 
 # Parse configuration_version_id and upload_url
-$config_version_id = $configuration_version_result.id
-$uploadurl = ($configuration_version_result.data.attributes."upload-url")
-write-host ""
-write-host "Config Version ID: $config_version_id"
-write-host "Upload URL: $uploadurl"
+#$config_version_id = $configuration_version_result.id
+#write-host ""
+#$uploadurl = ($configuration_version_result.data.attributes."upload-url")
+#write-host "Config Version ID: $config_version_id"
+#write-host "Upload URL: $uploadurl"
 
 # Upload configuration
-$uploadConfigHeaders = @{
-  'Content-Type' = 'application/octet-stream'
-}
-write-host ""
-write-host "Uploading configuration version using $config_tar_file_name"
-curl -s --header "Content-Type: application/octet-stream" --request PUT --data-binary @$config_tar_file_name "$uploadurl"
+#$uploadConfigHeaders = @{
+#  'Content-Type' = 'application/octet-stream'
+#}
+#write-host ""
+#curl -s --header "Content-Type: application/octet-stream" --request PUT --data-binary @$config_tar_file_name "$uploadurl"
+##write-host "Uploading configuration version using $config_tar_file_name"
 
 
 # Check if a variables.csv file is in the configuration directory
 # If so, use it. Otherwise, use the one in the current directory.
-if (test-path "$config_dir/variables.csv") {
-  write-host ""
-  write-host "Variables file found in $config_dir"
-  $variablesFile = "$config_dir/variables.csv"
+#if (test-path "$config_dir/variables.csv") {
+#  write-host ""
+#  write-host "Variables file found in $config_dir"
+#  $variablesFile = "$config_dir/variables.csv"
   # Add variables to workspace
-  write-host ""
-  $vars = import-csv $variablesFile | ForEach {
-    $key = $_.key
-    $value = $_.value
-    $category = $_.category
-    $hcl = $_.hcl
-    $sensitive = $_.sensitive
+#  write-host ""
+#  $vars = import-csv $variablesFile | ForEach {
+#  $value = $_.value
+#    $key = $_.key
+#    $category = $_.category
+#    $hcl = $_.hcl
+#    $sensitive = $_.sensitive
 
-    ((get-content ./variable.template.json) -Replace 'my-organization', $env:organization -Replace 'my-workspace', $env:workspace `
-        -Replace 'my-key', $key -Replace 'my-value', $value -Replace 'my-category', $category -replace 'my-hcl', $hcl -Replace 'my-sensitive', $sensitive `
-        | set-content ./variables.json)
-      # upload variable set
-    $uploadVariableResult = Invoke-RestMethod -Headers $headers -Method POST -inFile "./variables.json" -Uri "https://$env:address/api/v2/vars?filter%5Borganization%5D%5Bname%5D=$env:organization&filter%5Bworkspace%5D%5Bname%5D=$env:workspace"
-    $varID = $uploadVariableResult.data.id
-    write-host "Variable Id is $varId"
-  }
-}
+#    ((get-content ./variable.template.json) -Replace 'my-organization', $env:organization -Replace 'my-workspace', $env:workspace `
+#        -Replace 'my-key', $key -Replace 'my-value', $value -Replace 'my-category', $category -replace 'my-hcl', $hcl -Replace 'my-sensitive', $sensitive `
+#        | set-content ./variables.json)
+#      # upload variable set
+#    $uploadVariableResult = Invoke-RestMethod -Headers $headers -Method POST -inFile "./variables.json" -Uri "https://$env:address/api/v2/vars?filter%5Borganization%5D%5Bname%5D=$env:organization&filter%5Bworkspace%5D%5Bname%5D=$env:workspace"
+#    $varID = $uploadVariableResult.data.id
+#    write-host "Variable Id is $varId"
+#  }
+#}
 
 # Sentinel policies
 $sentinelListResult = Invoke-RestMethod -Headers $headers -Uri "https://$env:address/api/v2/organizations/$env:organization/policy-sets"
@@ -270,7 +268,7 @@ write-host "Number of Sentinel policy sets: $sentinelPolicySetCount"
 #############
 ((get-content ./run.template.json) -Replace 'workspace_id', $workspaceId | set-content ./run.json)
 $runResult = Invoke-RestMethod -Method POST -Headers $headers -inFile './run.json' -uri "https://$env:address/api/v2/runs"
-# Parse run_result
+## Parse run_result
 Start-Sleep -Seconds 10
 
 $runId = $runResult.data.id
@@ -280,11 +278,7 @@ $env:runId = $runId
 write-host "view the run in Terraform Cloud: https://app.terraform.io/app/$organization/workspaces/$workspace/runs/$runId"
 write-host ""
 
-
-rm workspace.json
-rm workspace.template.json
-rm run.json
-rm run.template.json
-rm config.tar.gz
-rm configversion.json
-
+rm ./workspace.template.json
+rm ./workspace.json
+rm ./run.json
+rm ./run.template.json
