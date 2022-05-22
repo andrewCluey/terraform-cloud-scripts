@@ -3,7 +3,6 @@ param (
     [Parameter(Mandatory=$true)][string]$runId,
     [string]$TFE_TOKEN,
     [string]$organization,
-    [string]$gitUrl,
     [string]$terraformConfigDirectory,
     [string]$comment
 )
@@ -29,8 +28,6 @@ param (
  If no env variable set, then this paramater is required.
  Specifies which Terraform Cloud Organization to create the new Workspace in.
 
- .PARAMETER giturl
- Not yet in use
 #>
 
 
