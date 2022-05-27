@@ -38,6 +38,7 @@
 ./create-policy.json
 ./variable.template.json
 ./variable.json
+*.json
 
 # Sentinel runtime directory
 .sentinel

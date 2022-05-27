@@ -3,7 +3,6 @@ param (
     [Parameter(Mandatory=$true)][string]$runId,
     [string]$TFE_TOKEN,
     [string]$organization,
-    [string]$terraformConfigDirectory,
     [string]$comment
 )
 
@@ -23,10 +22,17 @@ param (
  .PARAMETER runId
  Required: The Run ID that you wish to apply. 
 
+ .PARAMETER TFE_TOKEN
+ Temporary while we test. This should never be passed as a parameter in the command line. 
+ Use Environment variables or preferably a dynamic credential created by a solution such as Hashicorp Vault.
+ 
  .PARAMETER organization
  Optional: Will first check local environment variables for $env:organization.
  If no env variable set, then this paramater is required.
  Specifies which Terraform Cloud Organization to create the new Workspace in.
+
+ .EXAMPLE 
+ PS> ./pd-applyrun.ps1 -TFE_TOKEN $$blahBlahYourTerraformCloudAPIToken$$$ -organization "your-TF-Org" -workdspace "WorkspaceWhereRunCreated" -runId "IdOfTheRunToApply"
 
 #>
 
@@ -68,10 +74,8 @@ if ($workspace) {
 }
 
 
-# Write out apply.json
-$applyJsonTemplate = @"
-{"comment": "apply API"}
-"@
+$getRunResults = 
+
 
 set-content -Value $applyJsonTemplate -Path ./apply.json
 $applyJson = "apply.json"
